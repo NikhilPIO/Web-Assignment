@@ -1,0 +1,74 @@
+**Free                                                                      
+                                                                            
+      Ctl-Opt Option(*srcstmt:*nodebugio) BndDir('QC2LE' : 'NIKWEB/WEBBND');
+      Ctl-Opt DftActGrp(*No);                                               
+                                                                            
+                                                                            
+      Dcl-Pr WriteToWeb  ExtProc('QtmhWrStout');                            
+         datavar     char(65535)  Options(*varsize);                        
+         datavarlen  int(10)      const;                                    
+         ErrorCode   char(8000)   options(*varsize);                        
+      End-Pr;                                                               
+                                                                            
+                                                                            
+      Dcl-Ds  ErrDs   qualified;                                            
+         bytesprov    int(10)   inz(0);                                     
+         bytesavail   int(10)   inz(0);                                     
+      End-Ds;                                                               
+                                                                            
+      Dcl-Pr  GetEnv   Pointer ExtProc('getenv');  
+        *N   Pointer  Value   Options(*string);             
+      End-Pr;                                               
+                                                            
+                                                            
+      /COPY QSYSINC/QRPGLESRC,QUSEC                         
+                                                            
+                                                            
+      Dcl-Pr ReadStdInput   ExtProc('QtmhRdStin');          
+         szRtnBuffer    char(65535)  Options(*VarSize);     
+         nBufLen        Int(10)      const;                 
+         nRtnLen        Int(10);                            
+         QUSEC                       Like(QUSEC);           
+      End-Pr;                                               
+                                                            
+      Dcl-s  RtnBuffer  Char(4096) Inz;                     
+      Dcl-s  RtnLen     Int(10);                            
+      Dcl-Ds apiError   LikeDs(QUSEC) Inz;                  
+                                                            
+      Dcl-c  CRLF  x'0d25';             
+      Dcl-s  ReqMethod  char(100);                                   
+      Dcl-s  userName char(20);                                      
+      Dcl-s  Password  char(20);                                     
+      Dcl-s  pos Int(10);                                            
+      Dcl-s  userPos Int(10);                                        
+      Dcl-s  passPos Int(10);                                        
+                                                                     
+      Dcl-s  EBCdata    char(32766) Inz;                             
+                                                                     
+      DATA = 'Content-type: text/plain' + CRLF + CRLF ;              
+      writetoweb(DATA: %len(%trim(DATA)): ErrDs);                    
+                                                                     
+      ReqMethod = %Str(GetEnv('REQUEST_METHOD'));                    
+      If ReqMethod  = 'POST';                                        
+         ReadStdInput(RtnBuffer:%size(RtnBuffer):RtnLen:apiError);   
+      EndIf;                      
+      pos = %scan('&':%trim(RtnBuffer));                          
+      userPos = %scan('username=':%trim(RtnBuffer))+              
+                %len('username=');                                
+      userName = %subst(rtnBuffer:userPos:pos-userPos);           
+                                                                  
+      passPos = %scan('password=':%trim(RtnBuffer))+              
+                %len('password=');                                
+                                                                  
+      password = %subst(rtnBuffer:passPos);                       
+                                                                  
+      if %trim(password) = 'welcome' and %trim(username)='nikhil';
+        DATA = 'Login Succesfull Welcome To IBMI Web Service';    
+        writetoweb(DATA: %len(%trim(DATA)): ErrDs);               
+      else;                                                       
+        DATA = 'Login Failed Invalid Credentials';                
+        writetoweb(DATA: %len(%trim(DATA)): ErrDs);               
+      endif;               
+      *Inlr = *On;    
+      return;         	  
+                                                                     	  

@@ -1,0 +1,67 @@
+**Free
+
+      Ctl-Opt Option(*srcstmt:*nodebugio) BndDir('QC2LE' : 'NIKWEB/WEBBND');
+      Ctl-Opt DftActGrp(*No);
+
+      Dcl-F users usage(*input:*output) keyed;
+
+      Dcl-Pr WriteToWeb  ExtProc('QtmhWrStout');
+         datavar     char(65535)  Options(*varsize);
+         datavarlen  int(10)      const;
+         ErrorCode   char(8000)   options(*varsize);
+      End-Pr;
+
+
+      Dcl-Ds  ErrDs   qualified;
+         bytesprov    int(10)   inz(0);
+         bytesavail   int(10)   inz(0);
+      End-Ds;
+
+      Dcl-Pr  GetEnv   Pointer ExtProc('getenv');
+        *N   Pointer  Value   Options(*string);
+      End-Pr;
+
+
+      /COPY QSYSINC/QRPGLESRC,QUSEC
+
+
+      Dcl-Pr ReadStdInput   ExtProc('QtmhRdStin');
+         szRtnBuffer    char(65535)  Options(*VarSize);
+         nBufLen        Int(10)      const;
+         nRtnLen        Int(10);
+         QUSEC                       Like(QUSEC);
+      End-Pr;
+
+      Dcl-s  RtnBuffer  Char(4096) Inz;
+      Dcl-s  RtnLen     Int(10);
+      Dcl-Ds apiError   LikeDs(QUSEC) Inz;
+
+      Dcl-c  CRLF  x'0d25';
+      Dcl-s  Data  char(5000);
+      Dcl-s  Resp  char(100);
+      Dcl-s  Url   char(100);
+      Dcl-s  Source char(100);
+      Dcl-s  Pos int(10);
+      Dcl-s  UID packed(2:0);
+
+        Data = 'Content-type: text/plain' + CRLF +CRLF;
+        Writetoweb(DATA: %len(%trim(data)): Errds);
+
+        Url  = %str(getenv('REQUEST_URI'));
+        Source ='/CRTGET/';
+        Pos = %scan(%trim(source):%trim(url)) + %len(%trim(source));
+        UID = %INT(%SUBST(url:pos:2));
+
+        chain UID users;
+        if %found(users);
+           Resp = 'ID: ' + %char (ID)+ CRLF + 'Name: ' + Name + CRLF +
+                  'Team: ' + Team ;
+        else;
+           Resp = 'USER NOT FOUND';
+        endIf;
+
+        Data = %trim(Resp);
+        Writetoweb(DATA: %len(%trim(data)): Errds);
+
+      *Inlr = *On;
+      return;
